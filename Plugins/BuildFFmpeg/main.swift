@@ -899,7 +899,7 @@ private class BuildFFMPEG: BaseBuild {
         // matroska=mkv,mka,mks,mk3d
         "--enable-demuxer=matroska", "--enable-demuxer=mov", "--enable-demuxer=mp3", "--enable-demuxer=mpeg*",
         "--enable-demuxer=ogg", "--enable-demuxer=rm", "--enable-demuxer=rtsp", "--enable-demuxer=rtp", "--enable-demuxer=srt",
-        "--enable-demuxer=vc1", "--enable-demuxer=wav", "--enable-demuxer=webm_dash_manifest",
+        "--enable-demuxer=vc1", "--enable-demuxer=wav", "--enable-demuxer=webm_dash_manifest", "--enable-demuxer=webvtt",
         // ./configure --list-bsfs
         "--enable-bsfs",
         // ./configure --list-decoders
