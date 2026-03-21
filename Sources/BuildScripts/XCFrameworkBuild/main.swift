@@ -667,6 +667,11 @@ private class BuildFFMPEG: BaseBuild {
         // ,"--disable-fft"
         // Hardware accelerators:
         "--disable-amf", "--disable-d3d11va", "--disable-d3d12va", "--disable-dxva2", "--disable-vaapi", "--disable-vdpau",
+        "--enable-hwaccel=h263_videotoolbox", "--enable-hwaccel=h264_videotoolbox",
+        "--enable-hwaccel=hevc_videotoolbox", "--enable-hwaccel=mpeg1_videotoolbox",
+        "--enable-hwaccel=mpeg2_videotoolbox", "--enable-hwaccel=mpeg4_videotoolbox",
+        "--enable-hwaccel=prores_videotoolbox", "--enable-hwaccel=vp9_videotoolbox",
+        "--enable-hwaccel=av1_videotoolbox",
         // Individual component options:
         // ,"--disable-everything"
         // ./configure --list-muxers
