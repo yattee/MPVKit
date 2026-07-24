@@ -211,8 +211,16 @@ jobs:
                 file.write(content)
 
 
+      - name: Check PR already exists
+        id: check_pr_matrix
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXISTS=$(gh pr list --search '"${{ matrix.library.name }} bump version to ${{ env.LATEST_VERSION }}"' --state open --json title --jq 'length')
+          echo "exists=$([ "$EXISTS" -gt 0 ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
       - name: Create Pull Request
-        if: env.FOUND_NEW_VERSION
+        if: env.FOUND_NEW_VERSION && steps.check_pr_matrix.outputs.exists == 'false'
         uses: peter-evans/create-pull-request@v6
         with:
           add-paths: |
