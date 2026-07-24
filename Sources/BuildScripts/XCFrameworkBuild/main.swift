@@ -80,7 +80,7 @@ enum Library: String, CaseIterable {
         case .libdovi:
             return "3.3.2"
         case .vulkan:
-            return "1.4.1"
+            return "1.4.1-fix"
         case .libshaderc:  // compiling GLSL (OpenGL Shading Language) shaders into SPIR-V (Standard Portable Intermediate Representation - Vulkan) code
             return "2025.5.0"
         case .libuchardet:
@@ -889,6 +889,10 @@ private class BuildShaderc: ZipBaseBuild {
 private class BuildVulkan: ZipBaseBuild {
     init() {
         super.init(library: .vulkan)
+    }
+
+    override func frameworks() throws -> [String] {
+        ["MoltenVK"]
     }
 
     override func buildALL() throws {
