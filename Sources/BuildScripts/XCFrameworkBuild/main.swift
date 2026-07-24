@@ -72,7 +72,7 @@ enum Library: String, CaseIterable {
         case .libsmbclient:
             return "4.15.13-2512"
         case .libdav1d:    // AV1 decoding
-            return "1.5.2-xcode"
+            return "1.5.3"
         case .lcms2:
             return "2.17.0"
         case .libplacebo:
@@ -84,7 +84,7 @@ enum Library: String, CaseIterable {
         case .libshaderc:  // compiling GLSL (OpenGL Shading Language) shaders into SPIR-V (Standard Portable Intermediate Representation - Vulkan) code
             return "2025.5.0"
         case .libuchardet:
-            return "0.0.8-xcode"
+            return "0.0.8"
         case .libbluray:
             return "1.4.0"
         case .libluajit:

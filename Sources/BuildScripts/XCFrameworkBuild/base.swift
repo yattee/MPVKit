@@ -168,6 +168,7 @@ class BaseBuild {
                 for arch in platform.architectures {
                     let prefix = thinDir(platform: platform, arch: arch)
                     guard FileManager.default.fileExists(atPath: prefix.path) else { continue }
+                    guard !platform.minVersion.isEmpty else { continue }
 
                     var libPath = prefix + ["lib", "\(frameworkName).a"]
                     if !FileManager.default.fileExists(atPath: libPath.path) {
