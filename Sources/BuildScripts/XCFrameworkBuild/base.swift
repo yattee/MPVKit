@@ -151,7 +151,69 @@ class BaseBuild {
     }
 
     func afterBuild() throws {
+        try verifyMinVersions()
         try generatePackageManagerFile()
+    }
+
+    private func verifyMinVersions() throws {
+        let libNames = try frameworks()
+        for libName in libNames {
+            let frameworkName: String
+            if libName.hasPrefix("lib") || libName.hasPrefix("Lib") {
+                frameworkName = libName
+            } else {
+                frameworkName = "lib" + libName
+            }
+            for platform in BaseBuild.platforms {
+                for arch in platform.architectures {
+                    let prefix = thinDir(platform: platform, arch: arch)
+                    guard FileManager.default.fileExists(atPath: prefix.path) else { continue }
+
+                    var libPath = prefix + ["lib", "\(frameworkName).a"]
+                    if !FileManager.default.fileExists(atPath: libPath.path) {
+                        libPath = prefix + ["lib", "\(frameworkName).dylib"]
+                    }
+                    guard FileManager.default.fileExists(atPath: libPath.path) else { continue }
+
+                    let output = try Utility.launch(path: "/usr/bin/otool", arguments: ["-l", libPath.path], isOutput: true, isPrint: false)
+
+                    var binaryMinVersion: String?
+                    let lines = output.components(separatedBy: "\n")
+                    for i in 0..<lines.count {
+                        let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
+                        if trimmed == "cmd LC_BUILD_VERSION" {
+                            for j in (i + 1)..<min(i + 4, lines.count) {
+                                let sub = lines[j].trimmingCharacters(in: .whitespaces)
+                                if sub.hasPrefix("minos") {
+                                    let parts = sub.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+                                    if parts.count >= 2 { binaryMinVersion = parts[1] }
+                                    break
+                                }
+                            }
+                        } else if trimmed.hasPrefix("cmd LC_VERSION_MIN_") {
+                            for j in (i + 1)..<min(i + 4, lines.count) {
+                                let sub = lines[j].trimmingCharacters(in: .whitespaces)
+                                if sub.hasPrefix("version") {
+                                    let parts = sub.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+                                    if parts.count >= 2 { binaryMinVersion = parts[1] }
+                                    break
+                                }
+                            }
+                        }
+                        if binaryMinVersion != nil { break }
+                    }
+
+                    guard let binaryVersion = binaryMinVersion else {
+                        print("Warning: could not parse min version from \(libPath.path)")
+                        continue
+                    }
+
+                    if binaryVersion.compare(platform.minVersion, options: .numeric) == .orderedDescending {
+                        throw NSError(domain: "\(libPath.lastPathComponent): binary min version \(binaryVersion) > expected \(platform.minVersion) for \(platform.rawValue)/\(arch.rawValue)", code: 1)
+                    }
+                }
+            }
+        }
     }
 
     func architectures(_ platform: PlatformType) -> [ArchType] {
@@ -1252,20 +1314,20 @@ enum Utility {
     }
 
     @discardableResult
-    static func launch(path: String, arguments: [String], isOutput: Bool = false, currentDirectoryURL: URL? = nil, environment: [String: String] = [:]) throws -> String {
+    static func launch(path: String, arguments: [String], isOutput: Bool = false, isPrint: Bool = true, currentDirectoryURL: URL? = nil, environment: [String: String] = [:]) throws -> String {
         if !path.hasPrefix("/") {
             let execPath = Utility.shell("which \(path)", isOutput: true)!
             if execPath.isEmpty {
                 throw NSError(domain: "[\(path)] not found", code: 1)
             }
-            return try launch(executableURL: URL(fileURLWithPath: execPath), arguments: arguments, isOutput: isOutput, currentDirectoryURL: currentDirectoryURL, environment: environment)
+            return try launch(executableURL: URL(fileURLWithPath: execPath), arguments: arguments, isOutput: isOutput, isPrint: isPrint, currentDirectoryURL: currentDirectoryURL, environment: environment)
         } else {
-            return try launch(executableURL: URL(fileURLWithPath: path), arguments: arguments, isOutput: isOutput, currentDirectoryURL: currentDirectoryURL, environment: environment)
+            return try launch(executableURL: URL(fileURLWithPath: path), arguments: arguments, isOutput: isOutput, isPrint: isPrint, currentDirectoryURL: currentDirectoryURL, environment: environment)
         }
     }
 
     @discardableResult
-    static func launch(executableURL: URL, arguments: [String], isOutput: Bool = false, currentDirectoryURL: URL? = nil, environment: [String: String] = [:]) throws -> String {
+    static func launch(executableURL: URL, arguments: [String], isOutput: Bool = false, isPrint: Bool = true, currentDirectoryURL: URL? = nil, environment: [String: String] = [:]) throws -> String {
         let task = Process()
         var environment = environment
         // for homebrew 1.12
@@ -1301,7 +1363,7 @@ enum Utility {
             if !data.isEmpty {
                 outputBuffer.append(data)
                 if let outputString = String(data: data, encoding: .utf8) {
-                    if isOutput {
+                    if isPrint {
                         print(outputString.trimmingCharacters(in: .newlines))
                     }
 

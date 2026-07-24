@@ -1,0 +1,120 @@
+name: Update Minimum OS Versions
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update_versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch and parse MoltenVK deployment targets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const url = 'https://raw.githubusercontent.com/KhronosGroup/MoltenVK/refs/heads/main/MoltenVK/MoltenVK.xcodeproj/project.pbxproj';
+            const resp = await fetch(url);
+            const text = await resp.text();
+
+            const targets = {};
+            const patterns = {
+              ios: /IPHONEOS_DEPLOYMENT_TARGET\s*=\s*([\d.]+)/,
+              macos: /MACOSX_DEPLOYMENT_TARGET\s*=\s*([\d.]+)/,
+              tvos: /TVOS_DEPLOYMENT_TARGET\s*=\s*([\d.]+)/,
+            };
+
+            for (const [key, regex] of Object.entries(patterns)) {
+              const match = text.match(regex);
+              if (match) {
+                targets[key] = match[1];
+              }
+            }
+
+            core.info(`Parsed targets: ${JSON.stringify(targets)}`);
+
+            const baseFile = 'Sources/BuildScripts/XCFrameworkBuild/base.swift';
+            const templateFile = 'docs/Package.template.swift';
+            let baseContent = fs.readFileSync(baseFile, 'utf8');
+            let templateContent = fs.readFileSync(templateFile, 'utf8');
+            let hasChanges = false;
+
+            // Update base.swift (minVersion in PlatformType)
+            const versionMap = {
+              ios: targets.ios,
+              tvos: targets.tvos,
+              macos: targets.macos,
+            };
+
+            for (const [platform, newVersion] of Object.entries(versionMap)) {
+              const pattern = new RegExp(`(case \\.${platform}(?:,|:)[\\s\\S]*?return )"(\\d+\\.\\d+)"`);
+              const match = baseContent.match(pattern);
+              if (match) {
+                const oldVersion = match[2];
+                if (newVersion !== oldVersion) {
+                  baseContent = baseContent.replace(pattern, `$1"${newVersion}"`);
+                  core.info(`base.swift ${platform}: ${oldVersion} -> ${newVersion}`);
+                  hasChanges = true;
+                }
+              }
+            }
+
+            // Update docs/Package.template.swift
+            const pkgVersionMap = {
+              iOS: targets.ios,
+              macOS: targets.macos,
+              tvOS: targets.tvos,
+            };
+
+            for (const [key, newVersion] of Object.entries(pkgVersionMap)) {
+              const pkgPattern = new RegExp(`\\.${key}\\(\\.[vV](\\d+)\\)`);
+              const pkgMatch = templateContent.match(pkgPattern);
+              if (pkgMatch) {
+                const oldMajor = pkgMatch[1];
+                const newMajor = newVersion.split('.')[0];
+                if (newMajor !== oldMajor) {
+                  templateContent = templateContent.replace(pkgPattern, `.${key}(.v${newMajor})`);
+                  core.info(`Package.template.swift ${key}: v${oldMajor} -> v${newMajor}`);
+                  hasChanges = true;
+                }
+              }
+            }
+
+            if (hasChanges) {
+              fs.writeFileSync(baseFile, baseContent, 'utf8');
+              fs.writeFileSync(templateFile, templateContent, 'utf8');
+              core.info('Files updated');
+              core.exportVariable('NEW_IOS', targets.ios);
+              core.exportVariable('NEW_MACOS', targets.macos);
+              core.exportVariable('NEW_TVOS', targets.tvos);
+            } else {
+              core.info('No version changes needed');
+            }
+
+            core.exportVariable('HAS_CHANGES', hasChanges ? 'true' : 'false');
+
+      - name: Create Pull Request
+        if: env.HAS_CHANGES == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          add-paths: |
+            Sources/BuildScripts/XCFrameworkBuild/base.swift
+            docs/Package.template.swift
+          title: "raise minimum OS versions to iOS ${{ env.NEW_IOS }} / macOS ${{ env.NEW_MACOS }} / tvOS ${{ env.NEW_TVOS }}"
+          body: |
+            Updates minimum OS deployment targets to match MoltenVK's Xcode project settings.
+
+            - iOS: ${{ env.NEW_IOS }}
+            - macOS: ${{ env.NEW_MACOS }}
+            - tvOS: ${{ env.NEW_TVOS }}
+
+            Source: https://raw.githubusercontent.com/KhronosGroup/MoltenVK/refs/heads/main/MoltenVK/MoltenVK.xcodeproj/project.pbxproj
+          commit-message: "chore: raise minimum OS versions to iOS ${{ env.NEW_IOS }} / macOS ${{ env.NEW_MACOS }} / tvOS ${{ env.NEW_TVOS }}"
