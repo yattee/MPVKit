@@ -90,7 +90,7 @@ enum Library: String, CaseIterable {
         case .libluajit:
             return "2.1.0-fix"
         case .libuavs3d:
-            return "1.2.1"
+            return "1.2.1-fix"
         }
     }
 
