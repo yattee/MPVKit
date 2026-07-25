@@ -6,11 +6,15 @@ on:
       - develop
     tags:
       - '*'
-  pull_request:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Build and Release"]
+    types:
+      - completed
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: write
     runs-on: macos-26
