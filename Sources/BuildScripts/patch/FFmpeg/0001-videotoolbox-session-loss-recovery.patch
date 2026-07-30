@@ -1,0 +1,149 @@
+diff --git a/libavcodec/videotoolbox.c b/libavcodec/videotoolbox.c
+index 2cd22cb..82798b8 100644
+--- a/libavcodec/videotoolbox.c
++++ b/libavcodec/videotoolbox.c
+@@ -529,6 +529,8 @@ int ff_videotoolbox_uninit(AVCodecContext *avctx)
+     av_freep(&vtctx->bitstream);
+     if (vtctx->frame)
+         CVPixelBufferRelease(vtctx->frame);
++    if (vtctx->last_good_frame)
++        CVPixelBufferRelease(vtctx->last_good_frame);
+ 
+     if (vtctx->vt_ctx)
+         videotoolbox_stop(avctx);
+@@ -1045,6 +1047,27 @@ static const char *videotoolbox_error_string(OSStatus status)
+     return "unknown";
+ }
+ 
++// While recovering from a lost session, retry restarting it only every Nth
++// frame; session creation attempts are not free and keep failing as long as
++// the app stays backgrounded.
++#define VT_SESSION_RESTART_BACKOFF_FRAMES 30
++
++// Output the last successfully decoded frame again instead of propagating a
++// decode error, while the decoder recovers from a lost VideoToolbox session
++// (e.g. iOS invalidates hardware sessions when the app is backgrounded).
++// Without this, decoders like AV1 keep erroring on inter frames until the
++// next keyframe, which makes callers fall back to software decoding.
++static int videotoolbox_repeat_last_frame(AVCodecContext *avctx, AVFrame *frame)
++{
++    VTContext *vtctx = avctx->internal->hwaccel_priv_data;
++
++    if (vtctx->frame)
++        CVPixelBufferRelease(vtctx->frame);
++    vtctx->frame = CVPixelBufferRetain(vtctx->last_good_frame);
++
++    return videotoolbox_buffer_create(avctx, frame);
++}
++
+ int ff_videotoolbox_common_end_frame(AVCodecContext *avctx, AVFrame *frame)
+ {
+     OSStatus status;
+@@ -1052,11 +1075,31 @@ int ff_videotoolbox_common_end_frame(AVCodecContext *avctx, AVFrame *frame)
+     VTContext *vtctx = avctx->internal->hwaccel_priv_data;
+ 
+     if (vtctx->reconfig_needed == true) {
+-        vtctx->reconfig_needed = false;
+-        av_log(avctx, AV_LOG_VERBOSE, "VideoToolbox decoder needs reconfig, restarting..\n");
+-        videotoolbox_stop(avctx);
+-        if (videotoolbox_start(avctx) != 0) {
+-            return AVERROR_EXTERNAL;
++        if (vtctx->session_recovery && vtctx->last_good_frame &&
++            vtctx->session_restart_backoff > 0) {
++            // A restart was performed recently; defer the next one. With no
++            // session there is nothing to decode with, so repeat the last
++            // good frame. With a live session fall through and keep decoding
++            // on it (the next keyframe may recover it without a restart) —
++            // the pending reconfig is cleared on successful decode.
++            vtctx->session_restart_backoff--;
++            if (!videotoolbox->session)
++                return videotoolbox_repeat_last_frame(avctx, frame);
++        } else {
++            vtctx->reconfig_needed = false;
++            if (vtctx->session_recovery && vtctx->last_good_frame)
++                vtctx->session_restart_backoff = VT_SESSION_RESTART_BACKOFF_FRAMES;
++            av_log(avctx, AV_LOG_VERBOSE, "VideoToolbox decoder needs reconfig, restarting..\n");
++            videotoolbox_stop(avctx);
++            if (videotoolbox_start(avctx) != 0) {
++                if (vtctx->session_recovery && vtctx->last_good_frame) {
++                    vtctx->reconfig_needed = true;
++                    av_log(avctx, AV_LOG_VERBOSE,
++                           "VideoToolbox session restart failed, will retry; repeating last good frame\n");
++                    return videotoolbox_repeat_last_frame(avctx, frame);
++                }
++                return AVERROR_EXTERNAL;
++            }
+         }
+     }
+ 
+@@ -1065,14 +1108,48 @@ int ff_videotoolbox_common_end_frame(AVCodecContext *avctx, AVFrame *frame)
+ 
+     status = videotoolbox_session_decode_frame(avctx);
+     if (status != noErr) {
+-        if (status == kVTVideoDecoderMalfunctionErr || status == kVTInvalidSessionErr)
++        if (status == kVTVideoDecoderMalfunctionErr || status == kVTInvalidSessionErr) {
+             vtctx->reconfig_needed = true;
++            if (vtctx->last_good_frame && !vtctx->session_recovery) {
++                vtctx->session_recovery = true;
++                av_log(avctx, AV_LOG_WARNING,
++                       "VideoToolbox session lost (%s, %d), repeating last good frame until decoding recovers\n",
++                       videotoolbox_error_string(status), (int)status);
++            }
++        }
++        if (vtctx->session_recovery && vtctx->last_good_frame) {
++            av_log(avctx, AV_LOG_VERBOSE,
++                   "VideoToolbox decode failed (%s, %d), repeating last good frame\n",
++                   videotoolbox_error_string(status), (int)status);
++            return videotoolbox_repeat_last_frame(avctx, frame);
++        }
+         av_log(avctx, AV_LOG_ERROR, "Failed to decode frame (%s, %d)\n", videotoolbox_error_string(status), (int)status);
+         return AVERROR_UNKNOWN;
+     }
+ 
+-    if (!vtctx->frame)
++    if (!vtctx->frame) {
++        if (vtctx->reconfig_needed && vtctx->last_good_frame)
++            vtctx->session_recovery = true;
++        if (vtctx->session_recovery && vtctx->last_good_frame) {
++            av_log(avctx, AV_LOG_VERBOSE,
++                   "VideoToolbox produced no frame, repeating last good frame\n");
++            return videotoolbox_repeat_last_frame(avctx, frame);
++        }
+         return AVERROR_UNKNOWN;
++    }
++
++    if (vtctx->session_recovery) {
++        vtctx->session_recovery = false;
++        vtctx->session_restart_backoff = 0;
++        // A restart deferred by the backoff is unnecessary now that the
++        // session is decoding again.
++        vtctx->reconfig_needed = false;
++        av_log(avctx, AV_LOG_WARNING, "VideoToolbox session recovered\n");
++    }
++
++    if (vtctx->last_good_frame)
++        CVPixelBufferRelease(vtctx->last_good_frame);
++    vtctx->last_good_frame = CVPixelBufferRetain(vtctx->frame);
+ 
+     return videotoolbox_buffer_create(avctx, frame);
+ }
+diff --git a/libavcodec/vt_internal.h b/libavcodec/vt_internal.h
+index b1eb073..992f667 100644
+--- a/libavcodec/vt_internal.h
++++ b/libavcodec/vt_internal.h
+@@ -46,6 +46,15 @@ typedef struct VTContext {
+     uint8_t                     sps[3];
+     bool                        reconfig_needed;
+ 
++    // Session-loss recovery: while a lost VideoToolbox session (e.g. iOS
++    // invalidating hardware sessions when the app is backgrounded) is being
++    // re-established, the last successfully decoded frame is output again
++    // instead of returning decode errors, so callers don't give up on
++    // hardware decoding.
++    bool                        session_recovery;
++    CVImageBufferRef            last_good_frame;
++    int                         session_restart_backoff;
++
+     void *logctx;
+ } VTContext;
+ 
