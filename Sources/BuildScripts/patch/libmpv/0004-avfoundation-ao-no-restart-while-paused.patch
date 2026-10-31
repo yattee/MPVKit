@@ -1,0 +1,90 @@
+diff --git a/audio/out/ao_avfoundation.m b/audio/out/ao_avfoundation.m
+index c13f601..5db5602 100644
+--- a/audio/out/ao_avfoundation.m
++++ b/audio/out/ao_avfoundation.m
+@@ -31,6 +31,7 @@
+ #import <CoreFoundation/CoreFoundation.h>
+ #import <CoreMedia/CoreMedia.h>
+ 
++#include <stdatomic.h>
+ 
+ @interface AVObserver : NSObject {
+     struct ao *ao;
+@@ -45,6 +46,10 @@ - (void)handleRestartNotification:(NSNotification*)notification;
+     CMAudioFormatDescriptionRef format_description;
+     AVObserver *observer;
+     int64_t end_time_av;
++    // Between start() and stop(), and whether set_pause() paused it; read by
++    // the restart notification handler on another thread.
++    atomic_bool streaming;
++    atomic_bool paused;
+ };
+ 
+ static int64_t CMTimeGetNanoseconds(CMTime time)
+@@ -83,6 +88,11 @@ static void feed(struct ao *ao)
+         ao_stop_streaming(ao);
+     }
+     if (real_sample_count == 0) {
++        // Nothing to enqueue (underrun): the renderer is still ready for data
++        // and calls back immediately, so returning right away busy-loops on
++        // this queue. Back off briefly before the next request.
++        if (!eof)
++            mp_sleep_ns(MP_TIME_MS_TO_NS(10));
+         goto finish;
+     }
+ 
+@@ -145,6 +155,8 @@ static void start(struct ao *ao)
+     struct priv *p = ao->priv;
+ 
+     p->end_time_av = -1;
++    atomic_store(&p->paused, false);
++    atomic_store(&p->streaming, true);
+     [p->synchronizer setRate:1];
+     [p->renderer requestMediaDataWhenReadyOnQueue:p->queue usingBlock:^{
+         feed(ao);
+@@ -155,6 +167,7 @@ static void stop(struct ao *ao)
+ {
+     struct priv *p = ao->priv;
+ 
++    atomic_store(&p->streaming, false);
+     dispatch_sync(p->queue, ^{
+         [p->renderer stopRequestingMediaData];
+         [p->renderer flush];
+@@ -166,6 +179,7 @@ static bool set_pause(struct ao *ao, bool paused)
+ {
+     struct priv *p = ao->priv;
+ 
++    atomic_store(&p->paused, paused);
+     if (paused) {
+         [p->synchronizer setRate:0];
+     } else {
+@@ -206,10 +220,28 @@ - (instancetype)initWithAO:(struct ao*)_ao {
+     return self;
+ }
+ - (void)handleRestartNotification:(NSNotification*)notification {
++    struct priv *p = ao->priv;
+     // Use NSString -UTF8String (portable) instead of cfstr_get_cstr, whose
+     // implementation (osdep/utils-mac.c) is only built on macOS (Cocoa).
+-    MP_WARN(ao, "restarting due to system notification; this will cause desync\n");
+     MP_VERBOSE(ao, "notification name: %s\n", notification.name.UTF8String);
++
++    // Only restart what was streaming. start() on a paused (or never started)
++    // AO runs the renderer while mpv supplies no samples: feed() gets nothing
++    // to enqueue, the empty renderer asks again immediately in a tight loop,
++    // and the running renderer keeps iOS from suspending the app.
++    if (!atomic_load(&p->streaming)) {
++        MP_VERBOSE(ao, "system notification while not streaming; ignoring\n");
++        return;
++    }
++    if (atomic_load(&p->paused)) {
++        // Rebuilt by the player in the paused state.
++        MP_WARN(ao, "system notification while paused; reloading\n");
++        stop(ao);
++        ao_request_reload(ao);
++        return;
++    }
++
++    MP_WARN(ao, "restarting due to system notification; this will cause desync\n");
+     stop(ao);
+     start(ao);
+ }
