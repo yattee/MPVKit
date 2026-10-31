@@ -93,43 +93,43 @@ let package = Package(
 
         .binaryTarget(
             name: "Libmpv-GPL",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libmpv-GPL.xcframework.zip",
-            checksum: "3694d99ec91855b3322cabb188630a9cce1a39c91034c34e4cf15f22a1c6101c"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libmpv-GPL.xcframework.zip",
+            checksum: "d2899bb5dfd083550053a33a0cf0fe58b2402fe222bfce808372be38d2ea80aa"
         ),
         .binaryTarget(
             name: "Libavcodec-GPL",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavcodec-GPL.xcframework.zip",
-            checksum: "3fbe095e42e6b1dc1f8a520f98043162619fbf704947f6269819c616613f24c2"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavcodec-GPL.xcframework.zip",
+            checksum: "3fc4133f74ec5023e4bc75c0eb91b3805bedc3705d1263ad2d00e1e0bcc37f96"
         ),
         .binaryTarget(
             name: "Libavdevice-GPL",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavdevice-GPL.xcframework.zip",
-            checksum: "f49c116080a4930e2d06cabf4740b7f4e45b36496e98dc4d9607c9f44eab9902"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavdevice-GPL.xcframework.zip",
+            checksum: "173bc0c5000af763a402e3c42f6a52c35ca990a7c69a0d7a2bb8b7c637422fff"
         ),
         .binaryTarget(
             name: "Libavformat-GPL",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavformat-GPL.xcframework.zip",
-            checksum: "3e7648c17326e45b13680cc5d914d39227daaaa56abf488479fc8835647d8fc2"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavformat-GPL.xcframework.zip",
+            checksum: "6d857da7c2ee01321897e9ec6f0c17239eba5c852bfd436aec58a7c4c00a749e"
         ),
         .binaryTarget(
             name: "Libavfilter-GPL",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavfilter-GPL.xcframework.zip",
-            checksum: "407985c6bd25e8345921b0d12e74891644db113246941b84ee6851cfe7360ece"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavfilter-GPL.xcframework.zip",
+            checksum: "24a6fb5666a16cde378dd641d426ea9268570950bb7e4010a75a78deaecf1bf1"
         ),
         .binaryTarget(
             name: "Libavutil-GPL",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavutil-GPL.xcframework.zip",
-            checksum: "918d05d8a1a01674b5f9cc079929cc8968e520b0d0d3b2b27c25e434db6b658c"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavutil-GPL.xcframework.zip",
+            checksum: "13226270d4b5263926b405c6a4a42bef1a240743fa51864cafc770f5287e79c9"
         ),
         .binaryTarget(
             name: "Libswresample-GPL",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libswresample-GPL.xcframework.zip",
-            checksum: "2e2019d74bf754d44010cb90680b5ad2479ed7bf71335a3749b9aba6ad81b898"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libswresample-GPL.xcframework.zip",
+            checksum: "2c623310cdbe241dae9963c0a420bcf01bd490a5d8f4cdbe41897caef3d14cf1"
         ),
         .binaryTarget(
             name: "Libswscale-GPL",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libswscale-GPL.xcframework.zip",
-            checksum: "2e56f3c468cc46317942e8ff58694021c7be47b9b63b54545df577b298b00cc9"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libswscale-GPL.xcframework.zip",
+            checksum: "daa97d9ab500b840676e9af31ffb260dad479e3700460b6aaf05129437d9088e"
         ),
         //AUTO_GENERATE_TARGETS_BEGIN//
 
@@ -253,38 +253,38 @@ let package = Package(
 
         .binaryTarget(
             name: "Libavcodec",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavcodec.xcframework.zip",
-            checksum: "6e9640708f448fe059dd41ff49a8d758a62c27fb0bd8c4d9c22dd9bb9b766f9d"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavcodec.xcframework.zip",
+            checksum: "dc8f90d3ac3b9753a24b631b5556236214a77ce91db7ef1eb0383ccff6d99fef"
         ),
         .binaryTarget(
             name: "Libavdevice",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavdevice.xcframework.zip",
-            checksum: "03deb5c9f570a079551ce331985f48906c876437067684e280dee22e197268d3"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavdevice.xcframework.zip",
+            checksum: "66efd9b4d51f6cf7865f1daee494de5a2252f3cfeac58dee6939c827c5ac61e9"
         ),
         .binaryTarget(
             name: "Libavformat",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavformat.xcframework.zip",
-            checksum: "3ada6d47a6f108139648676b1a36ee292435bc44a69340ebc78f382c72dc748e"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavformat.xcframework.zip",
+            checksum: "251966c14ff385939e69378e7caac0b5b11fd1390849944f7fc59cf722868d2e"
         ),
         .binaryTarget(
             name: "Libavfilter",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavfilter.xcframework.zip",
-            checksum: "84ad60e3bb35a49cc16e1f6edd1d9a097e01b176189d4c1b18dd0e1e774c8004"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavfilter.xcframework.zip",
+            checksum: "848777f2c63440c38987e44586f35c40b6210579dbe642971d25b80ae95c4afc"
         ),
         .binaryTarget(
             name: "Libavutil",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libavutil.xcframework.zip",
-            checksum: "c6e3c164a76ba2ed046d896fc04eae96e81a5c46aae9578a11fd503e89c24c27"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libavutil.xcframework.zip",
+            checksum: "4abd4dd61ee71839eaa5838a05c9729518ae879fae921fc31d410b77ca002073"
         ),
         .binaryTarget(
             name: "Libswresample",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libswresample.xcframework.zip",
-            checksum: "bb721be9a6a3dd9c40bba8fc7975c06d3f545231e43cdb51ad28b4d6ff10758b"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libswresample.xcframework.zip",
+            checksum: "ce54696eb66f9519f4fc4bb08bdad4bd7f4b59c36144889ca27ce4288193a41e"
         ),
         .binaryTarget(
             name: "Libswscale",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libswscale.xcframework.zip",
-            checksum: "530af911d5ccc62f16a2e9ad3e1db87f0fa7873e4560df528f795eac4b2820da"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libswscale.xcframework.zip",
+            checksum: "5886c308de901809995688541988a4c7a17bbe4fab166b629b141005c77e7dc1"
         ),
 
         .binaryTarget(
@@ -301,8 +301,8 @@ let package = Package(
 
         .binaryTarget(
             name: "Libmpv",
-            url: "https://github.com/yattee/MPVKit/releases/download/1.0.1/Libmpv.xcframework.zip",
-            checksum: "92f6eb5b2555cb037a4e3c25f2894c28ee921177c8acc43bc227459e579e06f6"
+            url: "https://github.com/yattee/MPVKit/releases/download/1.0.2/Libmpv.xcframework.zip",
+            checksum: "30a4f002a2d5d7430bc91da7a873ab16ca7f68c33d32e93dca645f41f32087b4"
         ),
         //AUTO_GENERATE_TARGETS_END//
     ]
